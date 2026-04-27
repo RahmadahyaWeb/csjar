@@ -56,7 +56,38 @@ class PayrollService
                 ->firstOrFail();
 
             // ======================
-            // WORKING DAYS
+            // GUARD: NO ATTENDANCE
+            // ======================
+            if ($attendances->isEmpty()) {
+
+                $payroll = Payroll::updateOrCreate(
+                    [
+                        'user_id' => $userId,
+                        'start_date' => $start->toDateString(),
+                        'end_date' => $end->toDateString(),
+                    ],
+                    [
+                        'total_earning' => 0,
+                        'total_deduction' => 0,
+                        'net_salary' => 0,
+                        'status' => 'draft',
+                    ]
+                );
+
+                $payroll->details()->delete();
+
+                PayrollDetail::create([
+                    'payroll_id' => $payroll->id,
+                    'component_name' => 'No Attendance',
+                    'amount' => 0,
+                    'type' => 'earning',
+                ]);
+
+                return $payroll;
+            }
+
+            // ======================
+            // WORKING DAYS (BASED ON DATA)
             // ======================
             $workingDays = $attendances
                 ->whereNotIn('status', ['holiday'])
@@ -66,29 +97,39 @@ class PayrollService
             $ratePerMinute = $dailySalary / (8 * 60);
 
             // ======================
-            // AGGREGATION
+            // ATTENDANCE METRICS
             // ======================
+            $presentDays = $attendances->where('status', 'present')->count();
             $totalLate = $attendances->sum('late_minutes');
             $totalEarly = $attendances->sum('early_leave_minutes');
             $totalAbsent = $attendances->where('status', 'absent')->count();
 
+            // ONLY APPROVED OVERTIME
             $totalOvertime = $attendances
                 ->where('overtime_status', 'approved')
                 ->sum('overtime_minutes');
 
             // ======================
-            // CALCULATION
+            // EARNING (PRORATED)
+            // ======================
+            $proratedSalary = $presentDays * $dailySalary;
+            $overtimePay = $totalOvertime * $ratePerMinute;
+
+            $totalEarning = $proratedSalary + $overtimePay;
+
+            // ======================
+            // DEDUCTIONS
             // ======================
             $deductionLate = $totalLate * $ratePerMinute;
             $deductionEarly = $totalEarly * $ratePerMinute;
             $deductionAbsent = $totalAbsent * $dailySalary;
 
-            $overtimePay = $totalOvertime * $ratePerMinute;
-
-            $totalEarning = $salary->basic_salary + $overtimePay;
             $totalDeduction = $deductionLate + $deductionEarly + $deductionAbsent;
 
-            $net = $totalEarning - $totalDeduction;
+            // ======================
+            // NET
+            // ======================
+            $net = max(0, $totalEarning - $totalDeduction);
 
             // ======================
             // STORE PAYROLL
@@ -107,13 +148,19 @@ class PayrollService
                 ]
             );
 
+            // ======================
+            // RESET DETAILS
+            // ======================
             $payroll->details()->delete();
 
+            // ======================
+            // INSERT DETAILS
+            // ======================
             PayrollDetail::insert([
                 [
                     'payroll_id' => $payroll->id,
-                    'component_name' => 'Basic Salary',
-                    'amount' => $salary->basic_salary,
+                    'component_name' => 'Basic Salary (Prorated)',
+                    'amount' => $proratedSalary,
                     'type' => 'earning',
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -151,12 +198,6 @@ class PayrollService
                     'updated_at' => now(),
                 ],
             ]);
-
-            Attendance::where('user_id', $userId)
-                ->whereBetween('date', [$start, $end])
-                ->update([
-                    'is_locked' => true,
-                ]);
 
             return $payroll;
         });

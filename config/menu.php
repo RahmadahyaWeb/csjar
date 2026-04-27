@@ -192,6 +192,14 @@ return [
                     'permission' => 'attendance-report.view',
                     'active' => ['report.attendance-report'],
                 ],
+
+                [
+                    'label' => 'Payrolls Report',
+                    'icon' => 'computer-desktop',
+                    'route' => 'report.payroll-report',
+                    'permission' => 'payroll-report.view',
+                    'active' => ['report.payroll-report'],
+                ],
             ],
         ],
 

@@ -317,6 +317,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::livewire('/attendance-report', 'pages::report.attendance-report')
                 ->middleware('permission:attendance-report.view')
                 ->name('attendance-report');
+
+            Route::livewire('/payroll-report', 'pages::report.payroll-report')
+                ->middleware('permission:payroll-report.view')
+                ->name('payroll-report');
         });
 });
 
