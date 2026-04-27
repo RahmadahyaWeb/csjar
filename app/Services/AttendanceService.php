@@ -1,5 +1,7 @@
 <?php
 
+// app/Services/AttendanceService.php
+
 namespace App\Services;
 
 use App\Models\Attendance;
@@ -18,8 +20,11 @@ class AttendanceService
 {
     public function getTodayLogs(int $userId)
     {
+        $start = now()->startOfDay();
+        $end = now()->endOfDay()->addDay();
+
         return AttendanceLog::where('user_id', $userId)
-            ->whereDate('recorded_at', now()->toDateString())
+            ->whereBetween('recorded_at', [$start, $end])
             ->orderBy('recorded_at')
             ->get();
     }
@@ -76,6 +81,8 @@ class AttendanceService
     {
         return DB::transaction(function () use ($userId, $lat, $lng) {
 
+            $this->ensureNotLocked($userId);
+
             $state = $this->getState($userId);
 
             if (! $this->canCheckIn($state)) {
@@ -102,6 +109,8 @@ class AttendanceService
     public function checkOut(int $userId, ?float $lat, ?float $lng)
     {
         return DB::transaction(function () use ($userId, $lat, $lng) {
+
+            $this->ensureNotLocked($userId);
 
             $state = $this->getState($userId);
 
@@ -132,6 +141,8 @@ class AttendanceService
 
     public function startBreak(int $userId, ?float $lat, ?float $lng)
     {
+        $this->ensureNotLocked($userId);
+
         $state = $this->getState($userId);
 
         if (! $this->canStartBreak($state)) {
@@ -153,6 +164,8 @@ class AttendanceService
 
     public function endBreak(int $userId, ?float $lat, ?float $lng)
     {
+        $this->ensureNotLocked($userId);
+
         $state = $this->getState($userId);
 
         if (! $this->canEndBreak($state)) {
@@ -176,8 +189,11 @@ class AttendanceService
     // ======================
     public function processDaily(int $userId, string $date)
     {
+        $start = Carbon::parse($date)->startOfDay();
+        $end = Carbon::parse($date)->endOfDay()->addDay();
+
         $logs = AttendanceLog::where('user_id', $userId)
-            ->whereDate('recorded_at', $date)
+            ->whereBetween('recorded_at', [$start, $end])
             ->orderBy('recorded_at')
             ->get();
 
@@ -200,28 +216,28 @@ class AttendanceService
         $checkin = $logs->firstWhere('type', 'checkin');
         $checkout = $logs->where('type', 'checkout')->last();
 
-        if (! $checkin || ! $checkout) {
+        if (! $checkin) {
             return $this->store($userId, $date, ['status' => 'absent']);
         }
 
-        $breakMinutes = min(120, $this->calculateBreakMinutes($logs));
+        $breakMinutes = $this->calculateBreakMinutes($logs);
 
-        $workMinutes = max(0,
-            Carbon::parse($checkin->recorded_at)
-                ->diffInMinutes($checkout->recorded_at) - $breakMinutes
-        );
+        $workMinutes = $checkout
+            ? Carbon::parse($checkin->recorded_at)->diffInMinutes($checkout->recorded_at) - $breakMinutes
+            : 0;
 
         [$late, $early, $overtime] = $this->calculateShiftMetrics($userId, $checkin, $checkout);
 
         return $this->store($userId, $date, [
             'status' => 'present',
             'checkin_at' => $checkin->recorded_at,
-            'checkout_at' => $checkout->recorded_at,
-            'work_minutes' => $workMinutes,
+            'checkout_at' => $checkout?->recorded_at,
+            'work_minutes' => max(0, $workMinutes),
             'break_minutes' => $breakMinutes,
             'late_minutes' => $late,
             'early_leave_minutes' => $early,
             'overtime_minutes' => $overtime,
+            'overtime_status' => $overtime > 0 ? 'none' : 'none',
         ]);
     }
 
@@ -253,28 +269,22 @@ class AttendanceService
             return [0, 0, 0];
         }
 
-        $date = Carbon::parse($checkin->recorded_at)->toDateString();
-
-        $start = Carbon::parse($date.' '.$shift->start_time);
-        $end = Carbon::parse($date.' '.$shift->end_time);
+        $start = Carbon::parse($shift->start_time);
+        $end = Carbon::parse($shift->end_time);
 
         if ($shift->is_overnight) {
             $end->addDay();
         }
 
-        $rawLate = $checkin->recorded_at > $start
+        $late = $checkin && $checkin->recorded_at > $start
             ? $start->diffInMinutes($checkin->recorded_at)
             : 0;
 
-        $late = max(0, $rawLate - ($shift->tolerance_late ?? 0));
-
-        $rawEarly = $checkout->recorded_at < $end
+        $early = $checkout && $checkout->recorded_at < $end
             ? Carbon::parse($checkout->recorded_at)->diffInMinutes($end)
             : 0;
 
-        $early = max(0, $rawEarly - ($shift->tolerance_early_leave ?? 0));
-
-        $overtime = $checkout->recorded_at > $end
+        $overtime = $checkout && $checkout->recorded_at > $end
             ? $end->diffInMinutes($checkout->recorded_at)
             : 0;
 
@@ -292,6 +302,18 @@ class AttendanceService
     // ======================
     // VALIDATIONS
     // ======================
+    protected function ensureNotLocked(int $userId): void
+    {
+        $locked = Attendance::where('user_id', $userId)
+            ->whereDate('date', now())
+            ->where('is_locked', true)
+            ->exists();
+
+        if ($locked) {
+            throw new Exception('Attendance locked');
+        }
+    }
+
     protected function isWorkingDay(int $userId, string $date): bool
     {
         $day = $this->getWorkScheduleDay($userId, $date);
@@ -342,18 +364,15 @@ class AttendanceService
             throw new Exception('No shift assigned');
         }
 
-        $today = now()->toDateString();
-
-        $start = Carbon::parse($today.' '.$shift->start_time);
-        $end = Carbon::parse($today.' '.$shift->end_time);
+        $now = now();
+        $start = Carbon::parse($shift->start_time);
+        $end = Carbon::parse($shift->end_time);
 
         if ($shift->is_overnight) {
             $end->addDay();
         }
 
-        $now = now();
-
-        if ($now < $start->copy()->subMinutes($shift->tolerance_late ?? 0) || $now > $end) {
+        if ($now < $start->subMinutes($shift->tolerance_late ?? 0) || $now > $end) {
             throw new Exception('Outside shift time');
         }
     }
@@ -369,9 +388,11 @@ class AttendanceService
         $rules = BreakRule::where('shift_id', $shift->id)->get();
 
         foreach ($rules as $rule) {
-            if ($rule->start_time &&
+            if (
+                $rule->start_time &&
                 now()->format('H:i:s') >= $rule->start_time &&
-                now()->format('H:i:s') <= $rule->end_time) {
+                now()->format('H:i:s') <= $rule->end_time
+            ) {
                 return;
             }
         }
@@ -388,7 +409,7 @@ class AttendanceService
         $date = $date ?? now()->toDateString();
         $dayOfWeek = Carbon::parse($date)->dayOfWeekIso;
 
-        $schedule = EmployeeSchedule::with('workSchedule.days.shift')
+        $schedule = EmployeeSchedule::with('workSchedule.days')
             ->where('user_id', $userId)
             ->whereDate('start_date', '<=', $date)
             ->where(function ($q) use ($date) {

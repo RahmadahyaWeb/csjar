@@ -72,5 +72,9 @@
             Mark as Paid
         </flux:button>
 
+        <flux:button href="{{ route('payrolls.slip', $payroll->id) }}">
+            Download Slip
+        </flux:button>
+
     </div>
 </div>

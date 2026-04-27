@@ -2,6 +2,7 @@
 
 // app/Livewire/Pages/Payroll/Form.php
 
+use App\Models\Attendance;
 use App\Models\Payroll;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -24,6 +25,15 @@ new #[Title('Payroll Detail')] class extends Component
         $this->payroll->update([
             'status' => 'approved',
         ]);
+
+        Attendance::where('user_id', $this->payroll->user_id)
+            ->whereBetween('date', [
+                $this->payroll->start_date,
+                $this->payroll->end_date,
+            ])
+            ->update([
+                'is_locked' => true,
+            ]);
     }
 
     public function markAsPaid()

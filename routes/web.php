@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Payroll;
+use App\Services\PayrollSlipService;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -291,6 +293,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::livewire('/{payroll}', 'pages::payroll.detail')
                 ->middleware('permission:payroll.view')
                 ->name('detail');
+
+            Route::get('/{payroll}/slip', function (Payroll $payroll) {
+                return app(PayrollSlipService::class)->generate($payroll);
+            })->name('slip');
         });
 
     // REPORT
