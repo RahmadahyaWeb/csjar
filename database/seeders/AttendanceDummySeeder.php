@@ -18,11 +18,13 @@ class AttendanceDummySeeder extends Seeder
         try {
 
             $startDate = Carbon::create(2026, 4, 1);
-            $endDate = Carbon::create(2026, 4, 26);
+            $endDate = Carbon::create(2026, 4, 7);
 
             $users = User::whereDoesntHave('roles', function ($q) {
                 $q->where('name', 'super_admin');
-            })->pluck('id');
+            })
+                ->limit(2)
+                ->pluck('id');
 
             foreach ($users as $userId) {
 
@@ -30,20 +32,28 @@ class AttendanceDummySeeder extends Seeder
 
                 while ($current->lte($endDate)) {
 
-                    $dayOfWeek = $current->dayOfWeekIso;
-
-                    // skip weekend
-                    if (in_array($dayOfWeek, [6, 7])) {
+                    if (in_array($current->dayOfWeekIso, [6, 7])) {
                         $current->addDay();
 
                         continue;
                     }
 
-                    // ===== RANDOM SCENARIO =====
-                    $scenario = rand(1, 100);
+                    // ===== SCENARIO =====
+                    $scenario = match ($current->day % 7) {
+                        0 => 'absent',
+                        1 => 'normal',
+                        2 => 'late',
+                        3 => 'early',
+                        4 => 'overtime',
+                        5 => 'no_break',
+                        6 => 'multi_break',
+                    };
 
-                    // 1. ABSENT (10%)
-                    if ($scenario <= 10) {
+                    $lat = -3.319437;
+                    $lng = 114.590752;
+
+                    // ===== ABSENT =====
+                    if ($scenario === 'absent') {
 
                         Attendance::updateOrCreate(
                             [
@@ -60,77 +70,78 @@ class AttendanceDummySeeder extends Seeder
                         continue;
                     }
 
-                    // 2. HALF DAY / NO CHECKOUT (5%)
-                    $noCheckout = $scenario > 10 && $scenario <= 15;
-
-                    // 3. EARLY LEAVE (10%)
-                    $earlyLeave = $scenario > 15 && $scenario <= 25;
-
-                    // 4. OVERTIME (15%)
-                    $overtimeFlag = $scenario > 25 && $scenario <= 40;
-
-                    // 5. NO BREAK (5%)
-                    $noBreak = $scenario > 40 && $scenario <= 45;
-
-                    // 6. MULTIPLE BREAK (5%)
-                    $multiBreak = $scenario > 45 && $scenario <= 50;
+                    $baseStart = $current->copy()->setTime(8, 0);
+                    $baseEnd = $current->copy()->setTime(17, 0);
 
                     // ===== CHECKIN =====
-                    $checkinTime = $current->copy()->setTime(8, rand(0, 30));
+                    $checkinTime = match ($scenario) {
+                        'late' => $baseStart->copy()->addMinutes(rand(15, 45)),
+                        default => $baseStart->copy()->addMinutes(rand(0, 10)),
+                    };
 
                     AttendanceLog::create([
                         'user_id' => $userId,
                         'type' => 'checkin',
-                        'latitude' => -3.319437,
-                        'longitude' => 114.590752,
+                        'latitude' => $lat,
+                        'longitude' => $lng,
                         'recorded_at' => $checkinTime,
                     ]);
 
                     $totalBreak = 0;
 
-                    if (! $noBreak) {
+                    // ===== BREAK =====
+                    if ($scenario !== 'no_break') {
 
-                        // BREAK 1
-                        $breakStart = $current->copy()->setTime(12, rand(0, 10));
-                        $breakEnd = $breakStart->copy()->addMinutes(rand(45, 75));
+                        $breakStart = $current->copy()->setTime(12, rand(0, 15));
+                        $breakEnd = $breakStart->copy()->addMinutes(rand(30, 90));
 
-                        AttendanceLog::create([
-                            'user_id' => $userId,
-                            'type' => 'break_start',
-                            'latitude' => -3.319437,
-                            'longitude' => 114.590752,
-                            'recorded_at' => $breakStart,
-                        ]);
-
-                        AttendanceLog::create([
-                            'user_id' => $userId,
-                            'type' => 'break_end',
-                            'latitude' => -3.319437,
-                            'longitude' => 114.590752,
-                            'recorded_at' => $breakEnd,
+                        AttendanceLog::insert([
+                            [
+                                'user_id' => $userId,
+                                'type' => 'break_start',
+                                'latitude' => $lat,
+                                'longitude' => $lng,
+                                'recorded_at' => $breakStart,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ],
+                            [
+                                'user_id' => $userId,
+                                'type' => 'break_end',
+                                'latitude' => $lat,
+                                'longitude' => $lng,
+                                'recorded_at' => $breakEnd,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ],
                         ]);
 
                         $totalBreak += $breakStart->diffInMinutes($breakEnd);
 
-                        // BREAK 2 (optional)
-                        if ($multiBreak) {
+                        if ($scenario === 'multi_break') {
+
                             $break2Start = $breakEnd->copy()->addMinutes(rand(60, 120));
-                            $break2End = $break2Start->copy()->addMinutes(rand(10, 20));
+                            $break2End = $break2Start->copy()->addMinutes(rand(10, 25));
 
-                            AttendanceLog::create([
-                                'user_id' => $userId,
-                                'type' => 'break_start',
-                                'latitude' => -3.319437,
-                                'longitude' => 114.590752,
-                                'recorded_at' => $break2Start,
-                            ]);
-
-                            AttendanceLog::create([
-                                'user_id' => $userId,
-                                'type' => 'break_end',
-                                'latitude' => -3.319437,
-                                'longitude' => 114.590752,
-                                'recorded_at' => $break2End,
+                            AttendanceLog::insert([
+                                [
+                                    'user_id' => $userId,
+                                    'type' => 'break_start',
+                                    'latitude' => $lat,
+                                    'longitude' => $lng,
+                                    'recorded_at' => $break2Start,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ],
+                                [
+                                    'user_id' => $userId,
+                                    'type' => 'break_end',
+                                    'latitude' => $lat,
+                                    'longitude' => $lng,
+                                    'recorded_at' => $break2End,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ],
                             ]);
 
                             $totalBreak += $break2Start->diffInMinutes($break2End);
@@ -138,43 +149,41 @@ class AttendanceDummySeeder extends Seeder
                     }
 
                     // ===== CHECKOUT =====
-                    $checkoutTime = null;
+                    $checkoutTime = match ($scenario) {
+                        'early' => $baseEnd->copy()->subMinutes(rand(60, 180)),
+                        'overtime' => $baseEnd->copy()->addMinutes(rand(30, 120)),
+                        default => $baseEnd->copy()->addMinutes(rand(0, 15)),
+                    };
 
-                    if (! $noCheckout) {
+                    AttendanceLog::create([
+                        'user_id' => $userId,
+                        'type' => 'checkout',
+                        'latitude' => $lat,
+                        'longitude' => $lng,
+                        'recorded_at' => $checkoutTime,
+                    ]);
 
-                        if ($earlyLeave) {
-                            $checkoutTime = $current->copy()->setTime(15, rand(0, 30));
-                        } elseif ($overtimeFlag) {
-                            $checkoutTime = $current->copy()->setTime(18, rand(0, 60));
-                        } else {
-                            $checkoutTime = $current->copy()->setTime(17, rand(0, 20));
-                        }
+                    // ===== CALCULATION =====
+                    $workMinutes = max(0,
+                        $checkinTime->diffInMinutes($checkoutTime) - $totalBreak
+                    );
 
-                        AttendanceLog::create([
-                            'user_id' => $userId,
-                            'type' => 'checkout',
-                            'latitude' => -3.319437,
-                            'longitude' => 114.590752,
-                            'recorded_at' => $checkoutTime,
-                        ]);
-                    }
-
-                    // ===== FINAL ATTENDANCE =====
-                    $workMinutes = $checkoutTime
-                        ? $checkinTime->diffInMinutes($checkoutTime) - $totalBreak
+                    $late = $checkinTime->gt($baseStart)
+                        ? $baseStart->diffInMinutes($checkinTime)
                         : 0;
 
-                    $late = $checkinTime->gt($current->copy()->setTime(8, 0))
-                        ? $current->copy()->setTime(8, 0)->diffInMinutes($checkinTime)
+                    $early = $checkoutTime->lt($baseEnd)
+                        ? $checkoutTime->diffInMinutes($baseEnd)
                         : 0;
 
-                    $early = ($checkoutTime && $checkoutTime->lt($current->copy()->setTime(17, 0)))
-                        ? $checkoutTime->diffInMinutes($current->copy()->setTime(17, 0))
+                    $overtime = $checkoutTime->gt($baseEnd)
+                        ? $baseEnd->diffInMinutes($checkoutTime)
                         : 0;
 
-                    $overtime = ($checkoutTime && $checkoutTime->gt($current->copy()->setTime(17, 0)))
-                        ? $current->copy()->setTime(17, 0)->diffInMinutes($checkoutTime)
-                        : 0;
+                    // ===== NEW FIELD (OVERTIME APPROVAL) =====
+                    $isApproved = $scenario === 'overtime'
+                        ? (bool) rand(0, 1) // random approve / reject
+                        : false;
 
                     Attendance::updateOrCreate(
                         [
@@ -182,14 +191,15 @@ class AttendanceDummySeeder extends Seeder
                             'date' => $current->toDateString(),
                         ],
                         [
-                            'status' => $checkoutTime ? 'present' : 'present',
+                            'status' => 'present',
                             'checkin_at' => $checkinTime,
                             'checkout_at' => $checkoutTime,
-                            'work_minutes' => max(0, $workMinutes),
+                            'work_minutes' => $workMinutes,
                             'break_minutes' => $totalBreak,
                             'late_minutes' => $late,
                             'early_leave_minutes' => $early,
                             'overtime_minutes' => $overtime,
+                            'is_overtime_approved' => $isApproved,
                         ]
                     );
 

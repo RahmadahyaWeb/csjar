@@ -14,14 +14,16 @@ return new class extends Migration
         Schema::create('payrolls', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('period'); // YYYY-MM
             $table->decimal('total_earning', 15, 2)->default(0);
             $table->decimal('total_deduction', 15, 2)->default(0);
             $table->decimal('net_salary', 15, 2)->default(0);
             $table->enum('status', ['draft', 'approved', 'paid'])->default('draft');
+            $table->date('start_date');
+            $table->date('end_date');
+
             $table->timestamps();
 
-            $table->unique(['user_id', 'period']);
+            $table->unique(['user_id', 'start_date', 'end_date'], 'payroll_unique_period');
         });
 
     }

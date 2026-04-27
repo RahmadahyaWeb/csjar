@@ -279,6 +279,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('index');
         });
 
+    // PAYROLL
+    Route::middleware(['auth'])
+        ->name('payrolls.')
+        ->prefix('payrolls')
+        ->group(function () {
+            Route::livewire('/', 'pages::payroll.index')
+                ->middleware('permission:payroll.view')
+                ->name('index');
+
+            Route::livewire('/{payroll}', 'pages::payroll.detail')
+                ->middleware('permission:payroll.view')
+                ->name('detail');
+        });
+
+    // REPORT
+    Route::middleware(['auth'])
+        ->name('overtime-approval.')
+        ->prefix('overtime-approval')
+        ->group(function () {
+            Route::livewire('/', 'pages::overtime-approval.index')
+                ->middleware('permission:overtime-approval.view')
+                ->name('index');
+        });
+
     // REPORT
     Route::middleware(['auth'])
         ->name('report.')

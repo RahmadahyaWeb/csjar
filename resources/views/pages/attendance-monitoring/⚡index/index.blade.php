@@ -39,6 +39,16 @@
                 <option value="leave">Leave</option>
                 <option value="holiday">Holiday</option>
             </flux:select>
+
+            <flux:select wire:model.live="userId" label="User">
+                <option value="">All Users</option>
+
+                @foreach ($this->users as $user)
+                    <option value="{{ $user->id }}">
+                        {{ $user->name }}
+                    </option>
+                @endforeach
+            </flux:select>
         </div>
     </flux:card>
 

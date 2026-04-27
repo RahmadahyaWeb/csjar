@@ -50,6 +50,11 @@ class RolePermissionSeeder extends Seeder
 
                 'attendance-monitoring.view',
                 'attendance-report.view',
+
+                'payroll.view',
+
+                'overtime-approval.view',
+
             ];
 
             foreach ($permissions as $perm) {
@@ -79,6 +84,8 @@ class RolePermissionSeeder extends Seeder
                 'attendance-log.view',
 
                 'my-attendance.view',
+
+                'overtime-approval.view',
             ]);
 
             // HR (full operational control)
@@ -111,6 +118,8 @@ class RolePermissionSeeder extends Seeder
 
                 // personal
                 'my-attendance.view',
+
+                'payroll.view',
             ]);
 
             // EMPLOYEE (self service only)

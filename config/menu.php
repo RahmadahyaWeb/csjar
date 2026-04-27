@@ -195,6 +195,27 @@ return [
             ],
         ],
 
+        [
+            'heading' => 'Payroll',
+            'items' => [
+                [
+                    'label' => 'Payroll',
+                    'icon' => 'document',
+                    'route' => 'payrolls.index',
+                    'permission' => 'payroll.view',
+                    'active' => ['payrolls*'],
+                ],
+
+                [
+                    'label' => 'Overtime Approval',
+                    'icon' => 'document',
+                    'route' => 'overtime-approval.index',
+                    'permission' => 'overtime-approval.view',
+                    'active' => ['overtime-approval.index*'],
+                ],
+            ],
+        ],
+
     ],
 
 ];

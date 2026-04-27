@@ -29,6 +29,14 @@ return new class extends Migration
             $table->integer('early_leave_minutes')->default(0);
             $table->integer('overtime_minutes')->default(0);
 
+            $table->boolean('is_overtime_approved')->default(false);
+
+            $table->string('overtime_status')->default('none'); // none|pending|approved|rejected
+            $table->foreignId('overtime_approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('overtime_approved_at')->nullable();
+
+            $table->boolean('is_locked')->default(false)->index();
+
             $table->timestamps();
 
             $table->unique(['user_id', 'date']);

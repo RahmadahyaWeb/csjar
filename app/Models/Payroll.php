@@ -10,11 +10,17 @@ class Payroll extends Model
 {
     protected $fillable = [
         'user_id',
-        'period',
+        'start_date',
+        'end_date',
         'total_earning',
         'total_deduction',
         'net_salary',
         'status',
+    ];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
     ];
 
     public function user()

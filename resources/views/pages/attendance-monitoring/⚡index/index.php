@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Attendance;
+use App\Models\User;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -18,10 +19,18 @@ new #[Title('Attendance Monitoring')] class extends Component
 
     public $status;
 
+    public $userId;
+
     public function mount()
     {
         $this->startDate = now()->toDateString();
         $this->endDate = now()->toDateString();
+    }
+
+    #[Computed]
+    public function users()
+    {
+        return User::orderBy('name')->get();
     }
 
     #[Computed]
@@ -35,6 +44,7 @@ new #[Title('Attendance Monitoring')] class extends Component
             ->when($this->startDate, fn ($q) => $q->whereDate('date', '>=', $this->startDate))
             ->when($this->endDate, fn ($q) => $q->whereDate('date', '<=', $this->endDate))
             ->when($this->status, fn ($q) => $q->where('status', $this->status))
+            ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId))
             ->latest('date')
             ->paginate(10)
             ->through(function ($item) {
@@ -89,7 +99,8 @@ new #[Title('Attendance Monitoring')] class extends Component
     {
         $query = Attendance::query()
             ->when($this->startDate, fn ($q) => $q->whereDate('date', '>=', $this->startDate))
-            ->when($this->endDate, fn ($q) => $q->whereDate('date', '<=', $this->endDate));
+            ->when($this->endDate, fn ($q) => $q->whereDate('date', '<=', $this->endDate))
+            ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId));
 
         return [
             'present' => (clone $query)->where('status', 'present')->count(),
