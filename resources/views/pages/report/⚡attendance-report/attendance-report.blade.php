@@ -4,11 +4,25 @@
     <x-page-header title="Attendance Report" />
 
     <flux:card class="mb-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
 
             <flux:select wire:model.live="mode" label="Mode">
                 <option value="daily">Daily</option>
                 <option value="monthly">Monthly</option>
+            </flux:select>
+
+            <flux:select wire:model.live="departmentId" label="Department">
+                <option value="">All</option>
+                @foreach ($this->departments as $id => $name)
+                    <option value="{{ $id }}">{{ $name }}</option>
+                @endforeach
+            </flux:select>
+
+            <flux:select wire:model.live="userId" label="User">
+                <option value="">All</option>
+                @foreach ($this->users as $id => $name)
+                    <option value="{{ $id }}">{{ $name }}</option>
+                @endforeach
             </flux:select>
 
             @if ($mode === 'daily')
@@ -17,6 +31,23 @@
             @else
                 <flux:input type="month" wire:model.live="month" label="Month" />
             @endif
+
+            {{-- EXPORT BUTTON --}}
+            <div class="flex items-end">
+                <a href="{{ route('report.attendance-report.export', [
+                    'mode' => $mode,
+                    'startDate' => $startDate,
+                    'endDate' => $endDate,
+                    'month' => $month,
+                    'departmentId' => $departmentId,
+                    'userId' => $userId,
+                ]) }}"
+                    class="w-full">
+                    <flux:button variant="primary" class="w-full">
+                        Export Excel
+                    </flux:button>
+                </a>
+            </div>
 
         </div>
     </flux:card>

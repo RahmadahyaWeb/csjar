@@ -5,8 +5,10 @@
 
     {{-- FILTER --}}
     <flux:card class="mb-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
             <flux:input type="date" wire:model.live="startDate" label="Start Date" />
+
             <flux:input type="date" wire:model.live="endDate" label="End Date" />
 
             <flux:select wire:model.live="departmentId" label="Department">
@@ -15,6 +17,20 @@
                     <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                 @endforeach
             </flux:select>
+
+            <div class="flex items-end h-full">
+                <a href="{{ route('report.payroll-report.export', [
+                    'startDate' => $startDate,
+                    'endDate' => $endDate,
+                    'departmentId' => $departmentId,
+                ]) }}"
+                    class="w-full">
+                    <flux:button variant="primary" class="w-full">
+                        Export Excel
+                    </flux:button>
+                </a>
+            </div>
+
         </div>
     </flux:card>
 

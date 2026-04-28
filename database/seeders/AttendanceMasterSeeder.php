@@ -20,7 +20,7 @@ class AttendanceMasterSeeder extends Seeder
         try {
 
             // ========================
-            // SHIFTS
+            // SHIFT (ONLY MORNING)
             // ========================
             $morning = Shift::create([
                 'name' => 'Morning Shift',
@@ -32,21 +32,9 @@ class AttendanceMasterSeeder extends Seeder
                 'tolerance_early_leave' => 10,
             ]);
 
-            $night = Shift::create([
-                'name' => 'Night Shift',
-                'code' => 'NIGHT',
-                'start_time' => '22:00:00',
-                'end_time' => '06:00:00',
-                'is_overnight' => true,
-                'tolerance_late' => 10,
-                'tolerance_early_leave' => 10,
-            ]);
-
             // ========================
             // BREAK RULES
             // ========================
-
-            // Morning Shift Breaks
             BreakRule::create([
                 'shift_id' => $morning->id,
                 'name' => 'Lunch Break',
@@ -57,34 +45,40 @@ class AttendanceMasterSeeder extends Seeder
                 'is_flexible' => false,
             ]);
 
-            // Night Shift Breaks
-            BreakRule::create([
-                'shift_id' => $night->id,
-                'name' => 'Night Break',
-                'start_time' => '02:00:00',
-                'end_time' => '03:00:00',
-                'duration_minutes' => 60,
-                'is_paid' => false,
-                'is_flexible' => false,
+            // ========================
+            // WORK SCHEDULE (2 TYPES)
+            // ========================
+            $office5Days = WorkSchedule::create([
+                'name' => 'Office 5 Days',
+                'code' => 'OFFICE-5',
+            ]);
+
+            $office6Days = WorkSchedule::create([
+                'name' => 'Office 6 Days',
+                'code' => 'OFFICE-6',
             ]);
 
             // ========================
-            // WORK SCHEDULE
+            // WORK SCHEDULE DAYS (5 DAYS: MON-FRI)
             // ========================
-            $office = WorkSchedule::create([
-                'name' => 'Office Schedule',
-                'code' => 'OFFICE',
-            ]);
-
-            // ========================
-            // WORK SCHEDULE DAYS
-            // ========================
-            foreach (range(0, 6) as $day) {
+            foreach (range(1, 7) as $day) {
                 WorkScheduleDay::create([
-                    'work_schedule_id' => $office->id,
+                    'work_schedule_id' => $office5Days->id,
                     'day_of_week' => $day,
-                    'shift_id' => in_array($day, [0, 6]) ? null : $morning->id,
-                    'is_working_day' => ! in_array($day, [0, 6]),
+                    'shift_id' => in_array($day, [1, 2, 3, 4, 5]) ? $morning->id : null,
+                    'is_working_day' => in_array($day, [1, 2, 3, 4, 5]),
+                ]);
+            }
+
+            // ========================
+            // WORK SCHEDULE DAYS (6 DAYS: MON-SAT)
+            // ========================
+            foreach (range(1, 7) as $day) {
+                WorkScheduleDay::create([
+                    'work_schedule_id' => $office6Days->id,
+                    'day_of_week' => $day,
+                    'shift_id' => in_array($day, [1, 2, 3, 4, 5, 6]) ? $morning->id : null,
+                    'is_working_day' => in_array($day, [1, 2, 3, 4, 5, 6]),
                 ]);
             }
 
@@ -93,10 +87,16 @@ class AttendanceMasterSeeder extends Seeder
             // ========================
             $users = User::pluck('id');
 
-            foreach ($users as $userId) {
+            foreach ($users as $index => $userId) {
+
+                // Alternating assignment (biar ada variasi)
+                $scheduleId = $index % 2 === 0
+                    ? $office5Days->id
+                    : $office6Days->id;
+
                 EmployeeSchedule::create([
                     'user_id' => $userId,
-                    'work_schedule_id' => $office->id,
+                    'work_schedule_id' => $scheduleId,
                     'start_date' => now(),
                     'is_active' => true,
                 ]);

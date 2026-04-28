@@ -1,11 +1,16 @@
 <?php
 
+use App\Http\Controllers\AttendanceReportExportController;
+use App\Http\Controllers\EmployeeReportExportController;
 use App\Http\Controllers\FaceController;
+use App\Http\Controllers\LateRankingExportController;
+use App\Http\Controllers\OvertimeReportExportController;
+use App\Http\Controllers\PayrollReportExportController;
 use App\Models\Payroll;
 use App\Services\PayrollSlipService;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
@@ -300,7 +305,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })->name('slip');
         });
 
-    // REPORT
+    // OVERTIME
     Route::middleware(['auth'])
         ->name('overtime-approval.')
         ->prefix('overtime-approval')
@@ -310,7 +315,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('index');
         });
 
-    // REPORT
+    // REPORT ATTENDANCE AND PAYROLL
     Route::middleware(['auth'])
         ->name('report.')
         ->prefix('report')
@@ -322,6 +327,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::livewire('/payroll-report', 'pages::report.payroll-report')
                 ->middleware('permission:payroll-report.view')
                 ->name('payroll-report');
+
+            Route::livewire('/late-report', 'pages::report.late-report')
+                ->middleware('permission:late-report.view')
+                ->name('late-report');
+
+            Route::livewire('/overtime-report', 'pages::report.overtime-report')
+                ->middleware('permission:overtime-report.view')
+                ->name('overtime-report');
+
+            Route::livewire('/employee-report', 'pages::report.employee-report')
+                ->middleware('permission:employee-report.view')
+                ->name('employee-report');
+
+            Route::get('/attendance-report/export', AttendanceReportExportController::class)
+                ->name('attendance-report.export');
+
+            Route::get('/payroll-report/export', PayrollReportExportController::class)
+                ->name('payroll-report.export');
+
+            Route::get('/late-ranking/export', LateRankingExportController::class)
+                ->name('late-ranking.export');
+
+            Route::get('/overtime/export', OvertimeReportExportController::class)
+                ->name('overtime.export');
+
+            Route::get('/employee/export', EmployeeReportExportController::class)
+                ->name('employee.export');
         });
 
     // FACE RECOGNITION
