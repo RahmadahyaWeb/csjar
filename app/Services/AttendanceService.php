@@ -1,7 +1,5 @@
 <?php
 
-// app/Services/AttendanceService.php
-
 namespace App\Services;
 
 use App\Models\Attendance;
@@ -11,6 +9,7 @@ use App\Models\EmployeeAssignment;
 use App\Models\EmployeeSchedule;
 use App\Models\Holiday;
 use App\Models\Leave;
+use App\Models\UserFace;
 use App\Models\WorkScheduleDay;
 use Carbon\Carbon;
 use Exception;
@@ -18,6 +17,9 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceService
 {
+    /**
+     * Ambil semua log hari ini untuk user
+     */
     public function getTodayLogs(int $userId)
     {
         $start = now()->startOfDay();
@@ -29,6 +31,9 @@ class AttendanceService
             ->get();
     }
 
+    /**
+     * Menentukan state aktivitas user hari ini
+     */
     public function getState(int $userId): array
     {
         $logs = $this->getTodayLogs($userId);
@@ -49,9 +54,6 @@ class AttendanceService
         ];
     }
 
-    // ======================
-    // UI HELPERS
-    // ======================
     public function canCheckIn(array $state): bool
     {
         return ! $state['has_checkin'];
@@ -74,12 +76,21 @@ class AttendanceService
         return $state['is_on_break'];
     }
 
-    // ======================
-    // ACTIONS
-    // ======================
-    public function checkIn(int $userId, ?float $lat, ?float $lng)
+    /**
+     * CHECK-IN
+     *
+     * Alur:
+     * - validasi wajah
+     * - validasi lock
+     * - validasi state
+     * - validasi GPS, shift, holiday, leave
+     * - simpan log
+     */
+    public function checkIn(int $userId, ?float $lat, ?float $lng, array $descriptor)
     {
-        return DB::transaction(function () use ($userId, $lat, $lng) {
+        return DB::transaction(function () use ($userId, $lat, $lng, $descriptor) {
+
+            $this->validateFace($userId, $descriptor);
 
             $this->ensureNotLocked($userId);
 
@@ -106,9 +117,14 @@ class AttendanceService
         });
     }
 
-    public function checkOut(int $userId, ?float $lat, ?float $lng)
+    /**
+     * CHECK-OUT
+     */
+    public function checkOut(int $userId, ?float $lat, ?float $lng, array $descriptor)
     {
-        return DB::transaction(function () use ($userId, $lat, $lng) {
+        return DB::transaction(function () use ($userId, $lat, $lng, $descriptor) {
+
+            $this->validateFace($userId, $descriptor);
 
             $this->ensureNotLocked($userId);
 
@@ -184,9 +200,9 @@ class AttendanceService
         ]);
     }
 
-    // ======================
-    // PROCESSING
-    // ======================
+    /**
+     * PROSES FINAL ATTENDANCE
+     */
     public function processDaily(int $userId, string $date)
     {
         $start = Carbon::parse($date)->startOfDay();
@@ -237,7 +253,7 @@ class AttendanceService
             'late_minutes' => $late,
             'early_leave_minutes' => $early,
             'overtime_minutes' => $overtime,
-            'overtime_status' => $overtime > 0 ? 'none' : 'none',
+            'is_locked' => true,
         ]);
     }
 
@@ -299,9 +315,6 @@ class AttendanceService
         );
     }
 
-    // ======================
-    // VALIDATIONS
-    // ======================
     protected function ensureNotLocked(int $userId): void
     {
         $locked = Attendance::where('user_id', $userId)
@@ -311,6 +324,44 @@ class AttendanceService
 
         if ($locked) {
             throw new Exception('Attendance locked');
+        }
+    }
+
+    protected function validateFace(int $userId, array $descriptor): void
+    {
+        // validasi format descriptor
+        if (count($descriptor) !== 128) {
+            throw new Exception('Invalid face descriptor');
+        }
+
+        $face = UserFace::where('user_id', $userId)->first();
+
+        if (! $face) {
+            throw new Exception('Face not registered');
+        }
+
+        $distance = $this->euclidean($descriptor, $face->descriptor);
+
+        if ($distance >= 0.5) {
+            throw new Exception('Face not recognized');
+        }
+    }
+
+    protected function euclidean($a, $b)
+    {
+        $sum = 0;
+
+        foreach ($a as $i => $v) {
+            $sum += pow($v - $b[$i], 2);
+        }
+
+        return sqrt($sum);
+    }
+
+    protected function validateWorkingDay(int $userId): void
+    {
+        if (! $this->isWorkingDay($userId, now()->toDateString())) {
+            throw new Exception('Not a working day');
         }
     }
 
@@ -346,13 +397,6 @@ class AttendanceService
     {
         if ($this->isLeave($userId, now()->toDateString())) {
             throw new Exception('You are on leave');
-        }
-    }
-
-    protected function validateWorkingDay(int $userId): void
-    {
-        if (! $this->isWorkingDay($userId, now()->toDateString())) {
-            throw new Exception('Not a working day');
         }
     }
 

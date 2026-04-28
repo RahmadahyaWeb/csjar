@@ -84,16 +84,16 @@ new #[Title('My Attendance')] class extends Component
         $this->longitude = $lng;
     }
 
-    public function checkIn()
+    public function checkIn($descriptor)
     {
         try {
-
-            if (! $this->latitude || ! $this->longitude) {
-                throw new Exception('Waiting for GPS location...');
-            }
-
             app(AttendanceService::class)
-                ->checkIn(Auth::id(), $this->latitude, $this->longitude);
+                ->checkIn(
+                    auth()->id(),
+                    $this->latitude,
+                    $this->longitude,
+                    $descriptor
+                );
 
             Flux::toast(
                 heading: 'Success',
@@ -110,16 +110,17 @@ new #[Title('My Attendance')] class extends Component
         }
     }
 
-    public function checkOut()
+    public function checkOut($descriptor)
     {
         try {
 
-            if (! $this->latitude || ! $this->longitude) {
-                throw new Exception('Waiting for GPS location...');
-            }
-
             app(AttendanceService::class)
-                ->checkOut(Auth::id(), $this->latitude, $this->longitude);
+                ->checkOut(
+                    auth()->id(),
+                    $this->latitude,
+                    $this->longitude,
+                    $descriptor
+                );
 
             Flux::toast(
                 heading: 'Success',
@@ -128,6 +129,7 @@ new #[Title('My Attendance')] class extends Component
             );
 
         } catch (Throwable $e) {
+
             Flux::toast(
                 heading: 'Failed',
                 text: $e->getMessage(),

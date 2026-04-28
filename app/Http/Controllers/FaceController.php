@@ -23,4 +23,34 @@ class FaceController extends Controller
             'message' => 'Face registered',
         ]);
     }
+
+    public function verify(Request $request)
+    {
+        $request->validate([
+            'descriptor' => 'required|array|size:128',
+        ]);
+
+        $face = UserFace::where('user_id', auth()->id())->firstOrFail();
+
+        $distance = $this->euclidean(
+            $request->descriptor,
+            $face->descriptor
+        );
+
+        return response()->json([
+            'match' => $distance < 0.5,
+            'distance' => $distance,
+        ]);
+    }
+
+    private function euclidean($a, $b)
+    {
+        $sum = 0;
+
+        foreach ($a as $i => $v) {
+            $sum += pow($v - $b[$i], 2);
+        }
+
+        return sqrt($sum);
+    }
 }

@@ -324,12 +324,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('payroll-report');
         });
 
-    Route::middleware(['auth'])->group(function () {
-        Route::livewire('/face-setup', 'pages::enroll-face.index')->name('face.setup');
-    });
-
+    // FACE RECOGNITION
     Route::middleware('auth')->group(function () {
+        Route::livewire('/face-setup', 'pages::enroll-face.index')->name('face.setup');
+
         Route::post('/face/enroll', [FaceController::class, 'enroll']);
+        Route::post('/face/verify', [FaceController::class, 'verify'])->middleware('auth');
     });
 });
 

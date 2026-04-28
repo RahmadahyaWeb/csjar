@@ -203,6 +203,89 @@ window.addEventListener("face-reset", () => {
     document.dispatchEvent(new Event("livewire:navigated"));
 });
 
+window.verifyFace = async function () {
+    if (!window.__lastFaceDescriptor) {
+        console.log("FACE STATUS: NO FACE DETECTED");
+        alert("Face not detected");
+        return false;
+    }
+
+    const token = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
+
+    const res = await fetch("/face/verify", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": token,
+        },
+        body: JSON.stringify({
+            descriptor: window.__lastFaceDescriptor,
+        }),
+    });
+
+    const data = await res.json();
+
+    console.log("FACE DISTANCE:", data.distance);
+
+    if (data.match) {
+        console.log("FACE STATUS: MATCH ✅");
+    } else {
+        console.log("FACE STATUS: NOT MATCH ❌");
+    }
+
+    return data.match;
+};
+
+window.checkInWithFace = async function () {
+    // ======================
+    // STEP 1: VERIFY (CLIENT SIDE)
+    // ======================
+    const isValid = await window.verifyFace();
+
+    if (!isValid) {
+        alert("Face not recognized");
+        return;
+    }
+
+    // ======================
+    // STEP 2: CALL LIVEWIRE
+    // ======================
+    const el = document.querySelector("[wire\\:id]");
+    if (!el || !window.Livewire) return;
+
+    const component = window.Livewire.find(el.getAttribute("wire:id"));
+
+    if (component) {
+        component.call("checkIn", window.__lastFaceDescriptor);
+    }
+};
+
+window.checkOutWithFace = async function () {
+    // ======================
+    // STEP 1: VERIFY (CLIENT SIDE)
+    // ======================
+    const isValid = await window.verifyFace();
+
+    if (!isValid) {
+        alert("Face not recognized");
+        return;
+    }
+
+    // ======================
+    // STEP 2: CALL LIVEWIRE
+    // ======================
+    const el = document.querySelector("[wire\\:id]");
+    if (!el || !window.Livewire) return;
+
+    const component = window.Livewire.find(el.getAttribute("wire:id"));
+
+    if (component) {
+        component.call("checkOut", window.__lastFaceDescriptor);
+    }
+};
+
 // ======================
 // CLEANUP NAVIGATION
 // ======================

@@ -22,6 +22,7 @@ class Attendance extends Model
         'overtime_status',
         'overtime_approved_by',
         'overtime_approved_at',
+        'is_locked',
     ];
 
     protected $casts = [
