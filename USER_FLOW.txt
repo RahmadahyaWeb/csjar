@@ -1,0 +1,279 @@
+```text
+HRIS USER FLOW — END TO END
+
+==================================================
+1. ORGANIZATION SETUP (ADMIN)
+==================================================
+
+1. Admin membuat Branch
+2. Admin membuat Department per Branch
+3. Admin menentukan Head pada Department
+4. Admin membuat Position (hierarki jabatan)
+5. Admin membuat Team
+6. Admin assign User ke:
+   - Branch
+   - Department
+   - Position
+   - Team
+7. System menyimpan EmployeeAssignment (is_active = true)
+
+==================================================
+2. ATTENDANCE MASTER SETUP (HR)
+==================================================
+
+1. HR membuat Shift:
+   - start_time, end_time
+   - tolerance_late
+   - tolerance_early_leave
+   - support overnight
+
+2. HR membuat Work Schedule:
+   - nama schedule
+
+3. HR set Work Schedule Days:
+   - day_of_week
+   - shift_id
+   - is_working_day
+
+4. HR assign Employee Schedule:
+   - user_id
+   - work_schedule_id
+   - start_date / end_date
+
+5. HR set Break Rules (optional):
+   - time range
+   - flexible / fixed
+
+6. HR input Holiday
+
+7. Employee dapat mengajukan Leave
+8. Head/HR approve Leave
+
+==================================================
+3. DAILY ATTENDANCE FLOW (EMPLOYEE)
+==================================================
+
+1. Employee membuka halaman attendance
+
+2. System load state:
+   - sudah checkin / belum
+   - sedang break / tidak
+   - sudah checkout / belum
+
+3. Employee melakukan CHECK IN:
+   - kirim GPS
+   - system validasi:
+     ✔ working day
+     ✔ bukan holiday
+     ✔ bukan leave
+     ✔ dalam shift time (tolerance)
+     ✔ dalam radius branch
+   - simpan attendance_log (checkin)
+
+4. Employee START BREAK:
+   - validasi break rule
+   - simpan attendance_log (break_start)
+
+5. Employee END BREAK:
+   - simpan attendance_log (break_end)
+
+6. Employee CHECK OUT:
+   - validasi sama seperti checkin
+   - simpan attendance_log (checkout)
+   - trigger processDaily()
+
+==================================================
+4. ATTENDANCE PROCESSING (SYSTEM)
+==================================================
+
+Saat checkout / trigger manual:
+
+1. Ambil semua attendance_log hari itu
+
+2. Tentukan:
+   - checkin pertama
+   - checkout terakhir
+
+3. Hitung:
+   - break_minutes (pair break_start → break_end)
+   - work_minutes = total - break
+
+4. Ambil shift hari itu
+
+5. Hitung:
+   - late_minutes
+   - early_leave_minutes
+   - overtime_minutes
+
+6. Tentukan status:
+   - present
+   - absent
+   - leave
+   - holiday
+
+7. Simpan ke table attendances
+
+8. Jika overtime > 0:
+   → overtime_status = none (siap diproses payroll)
+
+==================================================
+5. ATTENDANCE MONITORING (HR)
+==================================================
+
+1. HR membuka menu monitoring
+
+2. Filter:
+   - date range
+   - status
+   - user
+
+3. System tampilkan:
+   - employee info (department, position)
+   - checkin / checkout
+   - work_minutes
+   - break_minutes
+   - late / early / overtime
+
+4. System generate description:
+   - Late (with tolerance / not)
+   - Early Leave
+   - Overtime
+   - Leave / Holiday / Absent
+
+==================================================
+6. OVERTIME APPROVAL FLOW (HEAD)
+==================================================
+
+1. HR generate payroll (step awal)
+
+2. System set:
+   - attendance overtime → pending
+
+3. Head membuka menu overtime approval
+
+4. Head melihat list:
+   - employee
+   - date
+   - overtime_minutes
+
+5. Head action:
+   - approve → overtime_status = approved
+   - reject → overtime_status = rejected
+
+==================================================
+7. PAYROLL GENERATION (HR)
+==================================================
+
+1. HR pilih:
+   - start_date
+   - end_date
+   - department (optional)
+   - user (optional)
+
+2. Klik GENERATE
+
+3. System loop per user:
+   - validasi:
+     ✔ tidak ada overtime pending
+     ✔ payroll belum finalized
+
+4. Ambil attendance dalam periode
+
+5. Jika tidak ada attendance:
+   → payroll = 0
+
+6. Hitung:
+   - present_days
+   - late_minutes
+   - early_leave_minutes
+   - absent_days
+   - overtime (approved only)
+
+7. Hitung salary:
+   - daily_salary = basic / working_days
+   - prorated_salary = present_days * daily_salary
+
+8. Hitung:
+   - overtime_pay
+   - deduction (late, early, absent)
+
+9. Final:
+   - total_earning
+   - total_deduction
+   - net_salary
+
+10. Simpan payroll + detail breakdown
+
+==================================================
+8. PAYROLL REVIEW (HR)
+==================================================
+
+1. HR buka payroll list
+
+2. Filter:
+   - date range
+   - department
+   - user
+
+3. HR buka detail payroll
+
+4. System tampilkan:
+   - employee
+   - period
+   - detail component
+   - net salary
+
+==================================================
+9. PAYROLL APPROVAL
+==================================================
+
+1. HR klik APPROVE
+
+2. System:
+   - status = approved
+   - approved_at terisi
+
+==================================================
+10. PAYROLL PAYMENT
+==================================================
+
+1. HR / admin klik MARK AS PAID
+
+2. System:
+   - status = paid
+   - paid_at terisi
+
+==================================================
+11. PAYROLL SLIP
+==================================================
+
+1. User / HR buka payroll detail
+
+2. Klik Download Slip
+
+3. System generate PDF:
+   - employee info
+   - period
+   - breakdown
+   - net salary
+
+==================================================
+FINAL FLOW SUMMARY
+==================================================
+
+Organization → Attendance Setup → Daily Attendance  
+→ Processing → Monitoring → Overtime Approval  
+→ Payroll Generate → Payroll Review → Approve → Paid → Slip
+
+==================================================
+SYSTEM CHARACTERISTICS
+==================================================
+
+✔ Attendance-driven payroll
+✔ Approval-based overtime
+✔ Prorated salary
+✔ Multi-department support
+✔ Shift-based logic (incl. overnight)
+✔ GPS validation
+✔ Fully traceable flow
+```

@@ -224,6 +224,19 @@ return [
             ],
         ],
 
+        [
+            'heading' => 'Enroll',
+            'items' => [
+                [
+                    'label' => 'Enroll Face',
+                    'icon' => 'document',
+                    'route' => 'face.setup',
+                    'permission' => 'face-setup.view',
+                    'active' => ['face.setup*'],
+                ],
+            ],
+        ],
+
     ],
 
 ];

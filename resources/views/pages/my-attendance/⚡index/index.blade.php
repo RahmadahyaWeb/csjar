@@ -2,6 +2,11 @@
 
     <x-page-header title="My Attendance" description="Track your attendance and manage daily activity." />
 
+    <flux:card wire:ignore>
+        <!-- DI SINI -->
+        <video id="video" autoplay muted playsinline class="w-full rounded"></video>
+    </flux:card>
+
     {{-- MAP --}}
     <flux:card>
 

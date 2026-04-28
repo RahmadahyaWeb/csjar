@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\EmployeeAssignment;
+use App\Models\UserFace;
 use App\Services\AttendanceService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,9 @@ new #[Title('My Attendance')] class extends Component
 
     public function mount()
     {
+        if (! UserFace::where('user_id', auth()->id())->exists()) {
+            return redirect()->route('face.setup');
+        }
         // init kosong, akan diisi dari JS
         $this->latitude = null;
         $this->longitude = null;

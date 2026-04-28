@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FaceController;
 use App\Models\Payroll;
 use App\Services\PayrollSlipService;
 use Illuminate\Support\Facades\Route;
@@ -322,6 +323,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->middleware('permission:payroll-report.view')
                 ->name('payroll-report');
         });
+
+    Route::middleware(['auth'])->group(function () {
+        Route::livewire('/face-setup', 'pages::enroll-face.index')->name('face.setup');
+    });
+
+    Route::middleware('auth')->group(function () {
+        Route::post('/face/enroll', [FaceController::class, 'enroll']);
+    });
 });
 
 require __DIR__.'/settings.php';
