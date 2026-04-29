@@ -51,7 +51,7 @@ new #[Title('Leaves')] class extends Component
 
             $approval = LeaveApproval::with('leave.approvals')->findOrFail($approvalId);
 
-            $this->authorizeUpdate($approval->leave);
+            $this->authorize('approve', $approval->leave);
 
             $blocked = $approval->leave->approvals()
                 ->where('level', '<', $approval->level)
@@ -104,9 +104,9 @@ new #[Title('Leaves')] class extends Component
     {
         $this->transaction(function () use ($approvalId) {
 
-            $approval = LeaveApproval::findOrFail($approvalId);
+            $approval = LeaveApproval::with('leave')->findOrFail($approvalId);
 
-            $this->authorizeUpdate($approval->leave);
+            $this->authorize('approve', $approval->leave);
 
             $approval->update([
                 'status' => 'rejected',

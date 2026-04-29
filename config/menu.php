@@ -143,6 +143,20 @@ return [
                     'permission' => 'employee-report.view',
                     'active' => ['report.employee-report'],
                 ],
+                [
+                    'label' => 'Schedule Report',
+                    'icon' => 'document',
+                    'route' => 'report.employee-schedule-report',
+                    'permission' => 'employee-schedule-report.view',
+                    'active' => ['report.employee-schedule-report'],
+                ],
+                [
+                    'label' => 'Leave Report',
+                    'icon' => 'document',
+                    'route' => 'report.leave-report',
+                    'permission' => 'leave-report.view',
+                    'active' => ['report.leave-report'],
+                ],
             ],
         ],
 

@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AttendanceReportExportController;
 use App\Http\Controllers\EmployeeReportExportController;
+use App\Http\Controllers\EmployeeScheduleReportExportController;
 use App\Http\Controllers\FaceController;
 use App\Http\Controllers\LateRankingExportController;
+use App\Http\Controllers\LeaveReportExportController;
 use App\Http\Controllers\OvertimeReportExportController;
 use App\Http\Controllers\PayrollReportExportController;
 use App\Models\Payroll;
@@ -13,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::livewire('/dashboard', 'pages::dashboard')->name('dashboard');
 
     // ROLES & PERMISSIONS
     Route::prefix('roles')
@@ -340,6 +342,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->middleware('permission:employee-report.view')
                 ->name('employee-report');
 
+            Route::livewire('/employee-schedule-report', 'pages::report.employee-schedule-report')
+                ->middleware('permission:employee-schedule-report.view')
+                ->name('employee-schedule-report');
+
+            Route::livewire('/leave-report', 'pages::report.leave-report')
+                ->middleware('permission:leave-report.view')
+                ->name('leave-report');
+
             Route::get('/attendance-report/export', AttendanceReportExportController::class)
                 ->name('attendance-report.export');
 
@@ -354,6 +364,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('/employee/export', EmployeeReportExportController::class)
                 ->name('employee.export');
+
+            Route::get('/employee-schedule/export', EmployeeScheduleReportExportController::class)
+                ->name('employee-schedule.export');
+
+            Route::get('/leave/export', LeaveReportExportController::class)
+                ->name('leave.export');
         });
 
     // FACE RECOGNITION

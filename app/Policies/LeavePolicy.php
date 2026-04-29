@@ -13,7 +13,6 @@ class LeavePolicy
     public function viewAny(User $user): bool
     {
         return $user->can('leave.view');
-
     }
 
     public function view(User $user, Leave $model): bool
@@ -34,5 +33,10 @@ class LeavePolicy
     public function delete(User $user, Leave $model): bool
     {
         return $user->can('leave.delete');
+    }
+
+    public function approve(User $user, Leave $model): bool
+    {
+        return $user->can('leave.approve');
     }
 }

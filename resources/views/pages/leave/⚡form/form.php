@@ -73,7 +73,7 @@ new class extends Component
         }
 
         // ambil HR Manager (level 1)
-        $hrManagerPosition = Position::where('code', 'HR-MGR')->first();
+        $hrManagerPosition = Position::where('code', 'HR-H')->first();
 
         $hrManagerUserId = EmployeeAssignment::where('position_id', $hrManagerPosition->id)
             ->where('is_active', true)

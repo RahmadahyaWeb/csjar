@@ -3,17 +3,19 @@
 ])
 
 @if ($sidebar)
-    <flux:sidebar.brand name="Savit" {{ $attributes }}>
-        <x-slot name="logo"
-            class="flex aspect-square size-8 items-center justify-center rounded-md bg-accent-content text-accent-foreground">
-            <x-app-logo-icon class="size-5 fill-current text-white dark:text-black" />
-        </x-slot>
-    </flux:sidebar.brand>
+    <div {{ $attributes->merge(['class' => 'flex items-center gap-3 px-3']) }}>
+        <img src="{{ asset('PorosTrack BW.png') }}" alt="Poros Logo" class="h-8 w-auto object-contain" />
+
+        <span class="text-lg font-semibold tracking-tight text-foreground">
+            Poros
+        </span>
+    </div>
 @else
-    <flux:brand name="Savit" {{ $attributes }}>
-        <x-slot name="logo"
-            class="flex aspect-square size-8 items-center justify-center rounded-md bg-accent-content text-accent-foreground">
-            <x-app-logo-icon class="size-5 fill-current text-white dark:text-black" />
-        </x-slot>
-    </flux:brand>
+    <div {{ $attributes->merge(['class' => 'flex items-center gap-3 px-3']) }}>
+        <img src="{{ asset('PorosTrack BW.png') }}" alt="Poros Logo" class="h-8 w-auto object-contain" />
+
+        <span class="text-lg font-semibold tracking-tight text-foreground">
+            Poros
+        </span>
+    </div>
 @endif

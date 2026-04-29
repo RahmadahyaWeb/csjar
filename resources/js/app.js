@@ -292,3 +292,197 @@ window.checkOutWithFace = async function () {
 document.addEventListener("livewire:navigating", () => {
     stopFace();
 });
+
+// resources/js/app.js
+
+import ApexCharts from "apexcharts";
+
+window.renderDashboardCharts = function (data) {
+    // =========================
+    // ATTENDANCE CHART (LINE - 7 DAYS)
+    // =========================
+    const attendanceEl = document.querySelector("#attendanceChart");
+
+    if (attendanceEl) {
+        if (attendanceEl.__chart) {
+            attendanceEl.__chart.destroy();
+        }
+
+        const chart = new ApexCharts(attendanceEl, {
+            chart: {
+                type: "line",
+                height: 280,
+                toolbar: { show: false },
+            },
+            stroke: {
+                curve: "smooth",
+                width: 3,
+            },
+            series: [
+                {
+                    name: "Present",
+                    data: data.attendance.present,
+                },
+                {
+                    name: "Absent",
+                    data: data.attendance.absent,
+                },
+            ],
+            xaxis: {
+                categories: data.attendance.labels,
+            },
+        });
+
+        chart.render();
+        attendanceEl.__chart = chart;
+    }
+
+    // =========================
+    // LEAVE CHART (DONUT)
+    // =========================
+    const leaveEl = document.querySelector("#leaveChart");
+
+    if (leaveEl) {
+        if (leaveEl.__chart) {
+            leaveEl.__chart.destroy();
+        }
+
+        const chart = new ApexCharts(leaveEl, {
+            chart: {
+                type: "donut",
+                height: 280,
+            },
+            labels: ["Pending", "Approved", "Rejected"],
+            series: [
+                data.leave.pending,
+                data.leave.approved,
+                data.leave.rejected,
+            ],
+        });
+
+        chart.render();
+        leaveEl.__chart = chart;
+    }
+
+    // =========================
+    // LATE RANK (BAR)
+    // =========================
+    const lateEl = document.querySelector("#lateChart");
+
+    if (lateEl) {
+        if (lateEl.__chart) {
+            lateEl.__chart.destroy();
+        }
+
+        const chart = new ApexCharts(lateEl, {
+            chart: {
+                type: "bar",
+                height: 280,
+                toolbar: { show: false },
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                },
+            },
+            series: [
+                {
+                    name: "Late Minutes",
+                    data: data.late.values,
+                },
+            ],
+            xaxis: {
+                categories: data.late.labels,
+            },
+        });
+
+        chart.render();
+        lateEl.__chart = chart;
+    }
+
+    // =========================
+    // WEEKLY CHART (LINE)
+    // =========================
+    const weeklyEl = document.querySelector("#weeklyChart");
+
+    if (weeklyEl) {
+        if (weeklyEl.__chart) {
+            weeklyEl.__chart.destroy();
+        }
+
+        const present = Array.isArray(data.weekly?.present)
+            ? data.weekly.present
+            : [];
+
+        const absent = Array.isArray(data.weekly?.absent)
+            ? data.weekly.absent
+            : [];
+
+        const labels = Array.isArray(data.weekly?.labels)
+            ? data.weekly.labels
+            : [];
+
+        const chart = new ApexCharts(weeklyEl, {
+            chart: {
+                type: "line",
+                height: 280,
+                toolbar: { show: false },
+            },
+            stroke: {
+                curve: "smooth",
+                width: 3,
+            },
+            series: [
+                {
+                    name: "Present",
+                    data: present,
+                },
+                {
+                    name: "Absent",
+                    data: absent,
+                },
+            ],
+            xaxis: {
+                categories: labels,
+            },
+        });
+
+        chart.render();
+        weeklyEl.__chart = chart;
+    }
+
+    // =========================
+    // MONTHLY CHART (BAR)
+    // =========================
+    const monthlyEl = document.querySelector("#monthlyChart");
+
+    if (monthlyEl) {
+        if (monthlyEl.__chart) {
+            monthlyEl.__chart.destroy();
+        }
+
+        const chart = new ApexCharts(monthlyEl, {
+            chart: {
+                type: "bar",
+                height: 280,
+                toolbar: { show: false },
+            },
+            series: [
+                {
+                    name: "Present",
+                    data: data.monthly.present,
+                },
+                {
+                    name: "Absent",
+                    data: data.monthly.absent,
+                },
+            ],
+            xaxis: {
+                categories: data.monthly.labels,
+            },
+        });
+
+        chart.render();
+        monthlyEl.__chart = chart;
+    }
+};

@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\Attendance;
+use App\Models\AttendanceLog;
 use App\Models\User;
 use Carbon\Carbon;
+use Flux\Flux;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -108,5 +110,34 @@ new #[Title('Attendance Monitoring')] class extends Component
             'leave' => (clone $query)->where('status', 'leave')->count(),
             'holiday' => (clone $query)->where('status', 'holiday')->count(),
         ];
+    }
+
+    public $selectedLat;
+
+    public $selectedLng;
+
+    public function openMap($attendanceId)
+    {
+        $log = AttendanceLog::where('user_id', function ($q) use ($attendanceId) {
+            $q->select('user_id')
+                ->from('attendances')
+                ->where('id', $attendanceId)
+                ->limit(1);
+        })
+            ->latest()
+            ->first();
+
+        if (! $log) {
+            return;
+        }
+
+        $this->dispatch('show-map', lat: $log->latitude, lng: $log->longitude);
+
+        Flux::modal('map-modal')->show();
+    }
+
+    public function closeMap()
+    {
+        Flux::modal('map-modal')->close();
     }
 };

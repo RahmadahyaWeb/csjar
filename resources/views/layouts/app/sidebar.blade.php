@@ -7,45 +7,52 @@
 
 <body class="min-h-screen bg-white dark:bg-zinc-800">
     <flux:sidebar sticky collapsible="mobile"
-        class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+        class="h-screen flex flex-col border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
 
+        {{-- HEADER --}}
         <flux:sidebar.header>
             <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
             <flux:sidebar.collapse class="lg:hidden" />
         </flux:sidebar.header>
 
-        <flux:sidebar.nav>
+        {{-- NAV (SCROLL AREA ONLY) --}}
+        <div class="flex-1 overflow-y-auto overflow-x-hidden">
+            <flux:sidebar.nav>
 
-            @foreach (config('menu.sidebar') as $group)
-                @php
-                    $filteredItems = collect($group['items'])->filter(function ($item) {
-                        return is_null($item['permission']) || auth()->user()->can($item['permission']);
-                    });
-                @endphp
+                @foreach (config('menu.sidebar') as $group)
+                    @php
+                        $filteredItems = collect($group['items'])->filter(function ($item) {
+                            return is_null($item['permission']) || auth()->user()->can($item['permission']);
+                        });
+                    @endphp
 
-                @if ($filteredItems->isNotEmpty())
-                    <flux:sidebar.group :heading="__($group['heading'])" class="grid">
+                    @if ($filteredItems->isNotEmpty())
+                        <flux:sidebar.group :heading="__($group['heading'])" class="grid">
 
-                        @foreach ($filteredItems as $item)
-                            @php
-                                $activeRoutes = $item['active'] ?? [$item['route'] . '*'];
-                            @endphp
+                            @foreach ($filteredItems as $item)
+                                @php
+                                    $activeRoutes = $item['active'] ?? [$item['route'] . '*'];
+                                @endphp
 
-                            <flux:sidebar.item :icon="$item['icon']" :href="route($item['route'])"
-                                :current="request()->routeIs(...$activeRoutes)" wire:navigate>
-                                {{ __($item['label']) }}
-                            </flux:sidebar.item>
-                        @endforeach
+                                <flux:sidebar.item :icon="$item['icon']" :href="route($item['route'])"
+                                    :current="request()->routeIs(...$activeRoutes)" wire:navigate
+                                    class="whitespace-normal break-words text-sm">
+                                    {{ __($item['label']) }}
+                                </flux:sidebar.item>
+                            @endforeach
 
-                    </flux:sidebar.group>
-                @endif
-            @endforeach
+                        </flux:sidebar.group>
+                    @endif
+                @endforeach
 
-        </flux:sidebar.nav>
+            </flux:sidebar.nav>
+        </div>
 
-        <flux:spacer />
+        {{-- FOOTER (FIXED) --}}
+        <div class="border-t border-zinc-200 dark:border-zinc-700 p-3">
+            <x-desktop-user-menu :name="auth()->user()->name" />
+        </div>
 
-        <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
     </flux:sidebar>
 
     <!-- Mobile User Menu -->

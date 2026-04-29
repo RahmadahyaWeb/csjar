@@ -45,6 +45,11 @@ class User extends Authenticatable
             ->implode('');
     }
 
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
     public function attendanceLogs()
     {
         return $this->hasMany(AttendanceLog::class);
