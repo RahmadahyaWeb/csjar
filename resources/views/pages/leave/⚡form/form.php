@@ -72,10 +72,10 @@ new class extends Component
             $approvers->push($department->head_user_id);
         }
 
-        // ambil HR Manager (level 1)
-        $hrManagerPosition = Position::where('code', 'HR-H')->first();
+        // ambil Kepala HRD & Administrasi
+        $hrManagerPosition = Position::where('code', 'HR-HEAD')->first();
 
-        $hrManagerUserId = EmployeeAssignment::where('position_id', $hrManagerPosition->id)
+        $hrManagerUserId = EmployeeAssignment::where('position_id', $hrManagerPosition?->id)
             ->where('is_active', true)
             ->value('user_id');
 
