@@ -17,18 +17,60 @@ class EmployeeSalarySeeder extends Seeder
 
         try {
 
-            $users = User::whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'super_admin');
-            })->get();
+            $users = User::with('employeeAssignment.position')
+                ->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'super_admin');
+                })
+                ->get();
 
             foreach ($users as $user) {
 
-                // basic salary berdasarkan pola sederhana (biar variatif)
-                $base = match (true) {
-                    str_contains($user->email, 'manager') => 8000000,
-                    str_contains($user->email, 'hr') => 7000000,
-                    str_contains($user->email, 'finance') => 6500000,
-                    str_contains($user->email, 'it') => 7000000,
+                $position = strtolower(
+                    optional($user->employeeAssignment?->position)->name ?? ''
+                );
+
+                $basicSalary = match (true) {
+
+                    // ========================
+                    // EXECUTIVE
+                    // ========================
+                    str_contains($position, 'direktur') => 25000000,
+                    str_contains($position, 'manajer umum') => 18000000,
+
+                    // ========================
+                    // HEAD / MANAGER
+                    // ========================
+                    str_contains($position, 'pemimpin redaksi') => 15000000,
+                    str_contains($position, 'produser eksekutif') => 14000000,
+                    str_contains($position, 'kepala digital') => 12000000,
+                    str_contains($position, 'kepala pemasaran') => 12000000,
+                    str_contains($position, 'kepala operasional') => 13000000,
+                    str_contains($position, 'kepala hrd') => 12000000,
+
+                    // ========================
+                    // SPECIALIST / EDITOR
+                    // ========================
+                    str_contains($position, 'redaktur') => 8500000,
+                    str_contains($position, 'spesialis') => 7500000,
+
+                    // ========================
+                    // CREATIVE
+                    // ========================
+                    str_contains($position, 'motion') => 7000000,
+                    str_contains($position, 'desainer') => 6500000,
+                    str_contains($position, 'produksi video') => 6500000,
+
+                    // ========================
+                    // OPERATIONAL
+                    // ========================
+                    str_contains($position, 'dukungan ti') => 7000000,
+                    str_contains($position, 'staf hrd') => 6000000,
+
+                    // ========================
+                    // REPORTER
+                    // ========================
+                    str_contains($position, 'reporter') => 5500000,
+
                     default => 5000000,
                 };
 
@@ -37,7 +79,7 @@ class EmployeeSalarySeeder extends Seeder
                         'user_id' => $user->id,
                     ],
                     [
-                        'basic_salary' => $base,
+                        'basic_salary' => $basicSalary,
                         'effective_date' => now()->startOfYear(),
                     ]
                 );

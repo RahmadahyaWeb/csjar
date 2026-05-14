@@ -19,7 +19,7 @@ class AttendanceDummySeeder extends Seeder
         try {
 
             $startDate = Carbon::create(2026, 4, 1);
-            $endDate = Carbon::create(2026, 4, 14);
+            $endDate = Carbon::create(2026, 5, 13);
 
             $users = User::whereDoesntHave('roles', function ($q) {
                 $q->where('name', 'super_admin');
